@@ -3,50 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Download All Files</title>
+    <title>Download Folder as ZIP</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
-    <button id="downloadAll">Download All Files</button>
+    <button id="downloadAll">Download All Files as ZIP</button>
 
     <script>
         document.getElementById('downloadAll').addEventListener('click', async function() {
+            const directoryUrl = 'https://mark6132014.github.io/downloadTest/'; // Update to your directory path
+
             try {
-                const directoryUrl = 'https://mark6132014.github.io/downloadTest/';
                 const response = await fetch(directoryUrl);
                 const text = await response.text();
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(text, 'text/html');
                 const links = Array.from(doc.querySelectorAll('a'))
                     .map(link => link.href)
-                    .filter(href => href.match(/\.(png|jpg|jpeg|gif|ext1|ext2|ext3)$/i)) // Adjust file extensions
+                    .filter(href => href.match(/\.(png|jpg|jpeg|gif|ext|txt|pdf|docx)$/i)) // Adjust file extensions as needed
                     .slice(0, 20); // Limit to 20 files
 
+                const zip = new JSZip();
+                const folder = zip.folder("downloaded_files");
+
                 for (const fileUrl of links) {
-                    await downloadFile(fileUrl);
+                    const fileResponse = await fetch(fileUrl);
+                    const blob = await fileResponse.blob();
+                    const fileName = fileUrl.split('/').pop();
+                    folder.file(fileName, blob);
                 }
+
+                zip.generateAsync({ type: "blob" })
+                    .then(content => {
+                        saveAs(content, "all_files.zip");
+                    });
             } catch (error) {
                 console.error('Error fetching file list:', error);
             }
         });
-
-        async function downloadFile(fileUrl) {
-            try {
-                const response = await fetch(fileUrl);
-                if (!response.ok) throw new Error('Network response was not ok');
-
-                const blob = await response.blob();
-                const downloadUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = downloadUrl;
-                a.download = fileUrl.split('/').pop(); // Extract file name from URL
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(downloadUrl);
-            } catch (error) {
-                console.error('Error downloading file:', error);
-            }
-        }
     </script>
 </body>
 </html>
