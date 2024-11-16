@@ -1,12 +1,36 @@
-<html>
-  <head>
-    <title>
-      Download Test
-    </title>
-  </head>
-  <body>
-    <img src="mario.png" height="100" width="100">
-    <a href="https://mark6132014.github.io/downloadTest/demo" download>Download Image</a>
-    <a href="https://mark6132014.github.io/downloadTest/" download>Download Image</a>
-  </body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sequential Download</title>
+</head>
+<body>
+    <a href="mario.png" download>Download File 1</a>
+    <a href="3D Picture.png" download>Download File 2</a>
+    <a href="merchWebsiteLOGO.jpg" download>Download File 3</a>
+    <button id="downloadAll">Download All Files</button>
+
+    <script>
+        document.getElementById('downloadAll').addEventListener('click', async function() {
+            const links = document.querySelectorAll('a[download]');
+            
+            for (let i = 0; i < links.length; i++) {
+                await downloadFile(links[i]);
+            }
+
+            function downloadFile(link) {
+                return new Promise((resolve) => {
+                    link.click();
+                    const interval = setInterval(() => {
+                        if (!link.href) { // Some logic to detect download completion
+                            clearInterval(interval);
+                            resolve();
+                        }
+                    }, 1000); // Check every second
+                });
+            }
+        });
+    </script>
+</body>
 </html>
