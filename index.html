@@ -21,48 +21,46 @@
     </style>
 </head>
 <body>
-    <h1>Files in Directory</h1>
+    <h1>Files in Repository</h1>
     <table id="fileTable">
         <thead>
             <tr>
                 <th>Select</th>
                 <th>File Name</th>
-                <th>Size</th>
                 <th>Type</th>
+                <th>URL</th>
             </tr>
         </thead>
         <tbody>
             <!-- Rows will be added dynamically here -->
         </tbody>
     </table>
-    <button id="downloadAll">Download Selected Files as ZIP</button>
+    <button id="downloadAll">Download All Files as ZIP</button>
 
     <script>
-        async function fetchDirectoryContents(directoryUrl) {
-            const response = await fetch(directoryUrl);
-            const text = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(text, 'text/html');
-            const links = Array.from(doc.querySelectorAll('a'))
-                .map(link => ({ href: link.href.startsWith('http') ? link.href : directoryUrl + link.getAttribute('href'), text: link.textContent.trim() }))
-                .filter(file => file.href.match(/\.(png|jpg|jpeg|gif|ext|txt|pdf|docx)$/i)); // Adjust file extensions as needed
+        async function fetchGitHubFiles() {
+            const repoOwner = 'mark6132014'; // Replace with your GitHub username
+            const repoName = 'downloadTest'; // Replace with your repository name
+            const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents`; // GitHub API URL
 
-            console.log("Fetched files:", links);
-            return links;
+            const response = await fetch(apiUrl);
+            const files = await response.json();
+            console.log("Fetched files:", files); // Log files to console
+
+            return files.filter(file => file.type === 'file'); // Return only files, not directories
         }
 
         async function populateFileTable() {
-            const directoryUrl = 'https://mark6132014.github.io/downloadTest/';
-            const files = await fetchDirectoryContents(directoryUrl);
+            const files = await fetchGitHubFiles();
             const tableBody = document.querySelector('#fileTable tbody');
 
             files.forEach(file => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><input type="checkbox" data-file-url="${file.href}"></td>
-                    <td>${file.text}</td>
-                    <td>${file.href.split('.').pop().toUpperCase()}</td>
-                    <td>${file.href.split('/').pop()}</td>
+                    <td><input type="checkbox" data-file-url="${file.download_url}" checked></td>
+                    <td>${file.name}</td>
+                    <td>${file.name.split('.').pop().toUpperCase()}</td>
+                    <td><a href="${file.html_url}" target="_blank">${file.html_url}</a></td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -88,7 +86,7 @@
 
             zip.generateAsync({ type: "blob" })
                 .then(content => {
-                    saveAs(content, "selected_files.zip");
+                    saveAs(content, "all_files.zip");
                 })
                 .catch(error => {
                     console.error('Error generating ZIP file:', error);
