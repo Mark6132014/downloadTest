@@ -6,51 +6,97 @@
     <title>Download Folder as ZIP</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-    <button id="downloadAll">Download All Files as ZIP</button>
+    <h1>Files in Directory</h1>
+    <table id="fileTable">
+        <thead>
+            <tr>
+                <th>Select</th>
+                <th>File Name</th>
+                <th>Size</th>
+                <th>Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added dynamically here -->
+        </tbody>
+    </table>
+    <button id="downloadAll">Download Selected Files as ZIP</button>
 
     <script>
+        async function fetchDirectoryContents(directoryUrl) {
+            const response = await fetch(directoryUrl);
+            const text = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            const links = Array.from(doc.querySelectorAll('a'))
+                .map(link => ({ href: link.href.startsWith('http') ? link.href : directoryUrl + link.getAttribute('href'), text: link.textContent.trim() }))
+                .filter(file => file.href.match(/\.(png|jpg|jpeg|gif|ext|txt|pdf|docx)$/i)); // Adjust file extensions as needed
+
+            console.log("Fetched files:", links);
+            return links;
+        }
+
+        async function populateFileTable() {
+            const directoryUrl = 'https://mark6132014.github.io/downloadTest/';
+            const files = await fetchDirectoryContents(directoryUrl);
+            const tableBody = document.querySelector('#fileTable tbody');
+
+            files.forEach(file => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="checkbox" data-file-url="${file.href}"></td>
+                    <td>${file.text}</td>
+                    <td>${file.href.split('.').pop().toUpperCase()}</td>
+                    <td>${file.href.split('/').pop()}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
         document.getElementById('downloadAll').addEventListener('click', async function() {
-            const directoryUrl = 'https://mark6132014.github.io/downloadTest/'; // Update to your directory path
+            const zip = new JSZip();
+            const folder = zip.folder("downloaded_files");
+            const checkedFiles = Array.from(document.querySelectorAll('#fileTable tbody input[type="checkbox"]:checked'));
 
-            try {
-                const response = await fetch(directoryUrl);
-                const text = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(text, 'text/html');
-                const links = Array.from(doc.querySelectorAll('a'))
-                    .map(link => link.href)
-                    .filter(href => href.match(/\.(png|jpg|jpeg|gif|ext|txt|pdf|docx)$/i)) // Adjust file extensions as needed
-                    .slice(0, 20); // Limit to 20 files
-
-                const zip = new JSZip();
-                const folder = zip.folder("downloaded_files");
-
-                for (const fileUrl of links) {
-                    try {
-                        const fileResponse = await fetch(fileUrl);
-                        if (!fileResponse.ok) throw new Error('Network response was not ok');
-
-                        const blob = await fileResponse.blob();
-                        const fileName = new URL(fileUrl).pathname.split('/').pop(); // Handle relative URLs correctly
-                        folder.file(fileName, blob);
-                    } catch (fileError) {
-                        console.error('Error downloading file:', fileError);
-                    }
+            for (const checkbox of checkedFiles) {
+                const fileUrl = checkbox.getAttribute('data-file-url');
+                try {
+                    const fileResponse = await fetch(fileUrl);
+                    if (!fileResponse.ok) throw new Error('Network response was not ok');
+                    const blob = await fileResponse.blob();
+                    const fileName = fileUrl.split('/').pop();
+                    folder.file(fileName, blob);
+                } catch (error) {
+                    console.error('Error downloading file:', error);
                 }
-
-                zip.generateAsync({ type: "blob" })
-                    .then(content => {
-                        saveAs(content, "all_files.zip");
-                    })
-                    .catch(error => {
-                        console.error('Error generating ZIP file:', error);
-                    });
-            } catch (error) {
-                console.error('Error fetching directory listing:', error);
             }
+
+            zip.generateAsync({ type: "blob" })
+                .then(content => {
+                    saveAs(content, "selected_files.zip");
+                })
+                .catch(error => {
+                    console.error('Error generating ZIP file:', error);
+                });
         });
+
+        // Initial population of the file table
+        populateFileTable();
     </script>
 </body>
 </html>
