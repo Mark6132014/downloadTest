@@ -8,7 +8,7 @@
 <body>
     <a href="mario.png" download>Download File 1</a>
     <a href="3D Picture.png" download>Download File 2</a>
-    <a href="merchWebsiteLOGO.png" download>Download File 3</a>
+    <a href="merchWebsiteLOGO.jpg" download>Download File 3</a>
     <button id="downloadAll">Download All Files</button>
 
     <script>
@@ -46,7 +46,6 @@
                     })
                     .catch(error => {
                         console.error('There has been a problem with your fetch operation:', error);
-                        alert('Failed to download the file. Please check the URL or try again later.');
                         reject();
                     });
             });
