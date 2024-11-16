@@ -8,29 +8,49 @@
 <body>
     <a href="mario.png" download>Download File 1</a>
     <a href="3D Picture.png" download>Download File 2</a>
-    <a href="merchWebsiteLOGO.jpg" download>Download File 3</a>
+    <a href="merchWebsiteLOGO.png" download>Download File 3</a>
     <button id="downloadAll">Download All Files</button>
 
     <script>
-        document.getElementById('downloadAll').addEventListener('click', async function() {
+        document.getElementById('downloadAll').addEventListener('click', function() {
             const links = document.querySelectorAll('a[download]');
-            
-            for (let i = 0; i < links.length; i++) {
-                await downloadFile(links[i]);
-            }
-
-            function downloadFile(link) {
-                return new Promise((resolve) => {
-                    link.click();
-                    const interval = setInterval(() => {
-                        if (!link.href) { // Some logic to detect download completion
-                            clearInterval(interval);
-                            resolve();
-                        }
-                    }, 1000); // Check every second
-                });
-            }
+            downloadFilesSequentially(links);
         });
+
+        async function downloadFilesSequentially(links) {
+            for (const link of links) {
+                await downloadFile(link);
+            }
+        }
+
+        function downloadFile(link) {
+            return new Promise((resolve, reject) => {
+                const url = link.href;
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        const downloadUrl = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = downloadUrl;
+                        a.download = link.getAttribute('download');
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(downloadUrl);
+                        resolve();
+                    })
+                    .catch(error => {
+                        console.error('There has been a problem with your fetch operation:', error);
+                        alert('Failed to download the file. Please check the URL or try again later.');
+                        reject();
+                    });
+            });
+        }
     </script>
 </body>
 </html>
